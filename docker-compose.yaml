@@ -1,0 +1,131 @@
+services:
+  alg-runner:
+    build:
+      context: ./alg-runner
+      dockerfile: Dockerfile
+    container_name: alg-runner
+    ports:
+      - "8000:8000"
+    networks:
+      - tp-net
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./alg-runner:/app
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 8000), timeout=1)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  central-unit:
+    build:
+      context: ./central-unit
+      dockerfile: Dockerfile
+    container_name: central-unit
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - ALG_RUNNER_URL=http://alg-runner:8000
+      - SUMO_API_URL=http://sumo-api:8002
+      - OMNET_CONNECT_TIMEOUT=15
+      - OMNET_WRITE_TIMEOUT=30
+      - OMNET_READ_TIMEOUT=120
+    networks:
+      - tp-net
+    volumes:
+      - ./central-unit/data:/app/data
+    depends_on:
+      alg-runner:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 8001), timeout=1)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  sumo:
+    build:
+      context: ./sumo
+      dockerfile: Dockerfile
+    image: sumo:latest
+    container_name: sumo
+    ports:
+      - "8003:8003"
+      - "1337:1337"
+    networks:
+      - tp-net
+    environment:
+      - SERVER_PORT=8003
+      - TRACI_PORT=1337
+    volumes:
+      - ./sumo-api/data:/sumo-api/data
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 8003), timeout=1)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  sumo-api:
+    build:
+      context: ./sumo-api
+      dockerfile: Dockerfile
+      args:
+        - SUMO_IMAGE=sumo:latest
+    container_name: sumo-api
+    ports:
+      - "8002:8002"
+    networks:
+      - tp-net
+    environment:
+      - API_KEY=SO3FWzO6Tu
+      - CENTRAL_UNIT_HOST=http://central-unit:8001
+      - FRONTEND_HOST=http://localhost:5173
+      - PRINT_INFO_LOGS=True
+      - EXPOSE_SWAGGER=True
+      - ISOLATED_MODE=False
+      - SUMO_HOST=http://sumo:1337
+      - SUMO_SERVER_URL=http://sumo:8003
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./sumo-api/data:/sumo-api/data
+    depends_on:
+      sumo:
+        condition: service_healthy
+      central-unit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import socket; socket.create_connection((\"localhost\", 8002), timeout=1)'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - PUBLIC_ALG_RUNNER_API=http://sumo-api:8002
+        - PUBLIC_SUMO_API=http://central-unit:8001
+        - PUBLIC_SUMO_API_KEY=SO3FWzO6Tu
+    container_name: frontend
+    ports:
+      - "5173:5173"
+    networks:
+      - tp-net
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - central-unit
+
+networks:
+  tp-net:
+    driver: bridge
+

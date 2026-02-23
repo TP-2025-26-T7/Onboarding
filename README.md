@@ -3,7 +3,7 @@ Information about the project and how it works.
 
 ## Modules
 
-- **Sumo + Sumo api** --> Sumo is a program for simulating traffic, and sumo api is an api overhead for the program
+- **Sumo + Sumo-service + Sumo api** --> Sumo is a program for simulating traffic, and sumo api is an api overhead for the program and sumo service is a middle man for communication between these two dockers
 - **Frontend**
 - **Alg-runner** --> Algrunner is a program that is the brain of the cars, it sends instructions to offline and real cars
 - **car integration** --> Car integration is a bridge for communicating with real-world cars
@@ -79,5 +79,43 @@ The system operates in discrete time steps (ticks). For every step:
     - **SUMO-API** applies the commands to the specific vehicles in the SUMO simulation via TraCI.
 6.  **Visualization**:
     - The **Frontend** polls the **Central Unit** or **SUMO-API** to fetch the current state and renders the cars moving on the map.
+
+## Local Development with Docker Compose
+
+To test the system locally, you can use the provided `docker-compose.yaml`.
+
+### 1. Download Required Components
+Clone/Download the following repositories into a single root directory:
+- `alg-runner`
+- `central-unit`
+- `sumo-service` (Note: This must be renamed or cloned into a folder named `sumo` to match the docker-compose configuration)
+- `sumo-api`
+- `frontend`
+- `docker-compose.yaml`
+
+### 2. Prepare Docker Compose
+Copy the `docker-compose.yaml` file from the `Onboarding` directory to the root directory (where all the component folders are located).
+
+The directory structure should look like this:
+```
+/root
+  ├── alg-runner/
+  ├── central-unit/
+  ├── frontend/
+  ├── Onboarding/
+  ├── sumo/              <-- (This is the sumo-service repo content)
+  ├── sumo-api/
+  └── docker-compose.yaml  <-- (Copied from Onboarding/)
+```
+
+### 3. Run the System
+From the root directory, run:
+
+```bash
+docker-compose up
+```
+This will build and start all services locally. Wait for the services to become healthy before interacting with the system. Local testing is without OMNeT++ network simulation, so telemetry will be sent directly from SUMO to Alg-Runner without network degradation.
+
+
 
 
