@@ -43,3 +43,41 @@ This module/workflow represents communication and instructions for virtual cars.
 
 ![alt text](img/image-3.png)
 
+## Detailed System Workflow
+
+The following steps describe the typical lifecycle of a simulation within this project:
+
+### 1. Initialization
+- The system is deployed via Docker Compose or Kubernetes.
+- **Central Unit** starts and acts as the orchestrator.
+- **SUMO Service** initializes and waits for simulation commands.
+- **Alg-Runner** prepares to execute driving algorithms (e.g., FIFO, PrioQ).
+
+### 2. Configuration & Start
+- A user uploads a SUMO configuration (network XML, routes XML) via the **Frontend**.
+- The **Central Unit** signals **SUMO-API** to parse the configuration and start the SUMO binary in the **SUMO Service**.
+- The static road network data is sent to **Alg-Runner** so it understands the map topology (junctions, roads).
+
+### 3. The Simulation Loop
+The system operates in discrete time steps (ticks). For every step:
+
+1.  **Advance Simulation**: The **Central Unit** requests **SUMO-API** to advance the simulation by one step.
+2.  **Telemetry Gathering**:
+    - **SUMO-API** fetches telemetry data (position, speed, sensors) for **each individual car** from the simulation.
+    - These per-car data packets are returned to the **Central Unit**.
+3.  **Network Simulation (OMNeT++)**:
+    - If enabled, the **Central Unit** forwards the telemetry data for each car to **OMNeT++**.
+    - OMNeT++ simulates network conditions (5G/V2X interactions, latency, packet loss) for each transmission.
+    - The processed data is sent back to the **Central Unit**, where it is **collected and aggregated** into a single coherent state update (simulating the central server receiving data from many individual vehicles).
+4.  **Decision Making**:
+    - The (potentially network-degraded) telemetry is sent to **Alg-Runner**.
+    - **Alg-Runner** processes the state using the selected algorithm (e.g., stopping at an intersection, changing lanes).
+    - **Alg-Runner** computes instructions for each car (e.g., "set speed to 0", "turn left").
+5.  **Execution**:
+    - Instructions are sent back to the **Central Unit**.
+    - **Central Unit** forwards these commands to **SUMO-API**.
+    - **SUMO-API** applies the commands to the specific vehicles in the SUMO simulation via TraCI.
+6.  **Visualization**:
+    - The **Frontend** polls the **Central Unit** or **SUMO-API** to fetch the current state and renders the cars moving on the map.
+
+
