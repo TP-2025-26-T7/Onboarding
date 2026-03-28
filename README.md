@@ -1,6 +1,18 @@
 # Onboarding
 Information about the project and how it works.
 
+# All accesses and who you need to talk to
+**OMNET and KUBERNETES CLUSTER**
+- You will need to get "JUMP SERVER" access from **Matej Janeba** or any other person resposible for it
+
+**OMNET SERVER**
+- For passwords for the server and RDP connection contact the supervisor
+
+**GITHUB**
+- For access to the repositories, you need to ask the supervisor for an invite to the organization and repositories
+
+After this you should have access to all the necessary resources to work on the project. If you have any issues with access, please contact the supervisor or the responsible person for the specific resource.
+
 ## Modules
 
 - **Sumo + Sumo-service + Sumo api** --> Sumo is a program for simulating traffic, and sumo api is an api overhead for the program and sumo service is a middle man for communication between these two dockers
@@ -9,6 +21,11 @@ Information about the project and how it works.
 - **car integration** --> Car integration is a bridge for communicating with real-world cars
 - **OMNET** --> serves as a network simulator that receives and sends back JSON files via a UDP connection to simulate network processing
 - **Central unit** --> a hub for all connections, traffic routing and logging
+
+Every repository has its own README file with more detailed information about the specific module, how to run it, and how it works. It is recommended to read through the README files of each module to get a better understanding of the project as a whole.
+
+![alt text](image.png)
+Frontend interface
 
 ## Information repos
 
