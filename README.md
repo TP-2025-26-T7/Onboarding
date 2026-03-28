@@ -1,6 +1,13 @@
 # Onboarding
 Information about the project and how it works.
 
+# Showcase of the project
+1. Simulation start
+![alt text](simulation-start.gif)
+
+2. Simulation end
+![alt text](simulation-end.gif)
+
 # All accesses and who you need to talk to
 **OMNET and KUBERNETES CLUSTER**
 - You will need to get "JUMP SERVER" access from **Matej Janeba** or any other person resposible for it
