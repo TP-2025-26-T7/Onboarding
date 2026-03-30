@@ -11,8 +11,8 @@ Information about the project and how it works.
 Whole simulation demo is in this repository files as **demo-video/SIMULATION_DEMO.mp4**
 
 # All accesses and who you need to talk to
-**OMNET and KUBERNETES CLUSTER**
-- You will need to get "JUMP SERVER" access from **Matej Janeba** or any other person resposible for it
+**JUMP & KUBERNETES CLUSTER**
+- You will need to get "JUMP SERVER" access from **Ing. Matej Janeba Phd.** or any other person resposible for it
 
 **OMNET SERVER**
 - For passwords for the server and RDP connection contact the supervisor
