@@ -30,7 +30,8 @@ services:
       - PYTHONUNBUFFERED=1
       - ALG_RUNNER_URL=http://alg-runner:8000
       - SUMO_API_URL=http://sumo-api:8002
-      - OMNET_API_URL=http://omnet-api:80
+      - OMNET_API_URL=http://192.168.20.51:80
+      - OMNET_API_FALLBACK_URL=http://192.168.20.51:80
       - OMNET_CONNECT_TIMEOUT=15
       - OMNET_WRITE_TIMEOUT=30
       - OMNET_READ_TIMEOUT=120
