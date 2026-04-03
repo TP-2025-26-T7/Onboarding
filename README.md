@@ -20,6 +20,11 @@ Whole simulation demo is in this repository files as **demo-video/SIMULATION_DEM
 **GITHUB**
 - For access to the repositories, you need to ask the supervisor for an invite to the organization and repositories
 
+**GITHUB API TOKEN**
+- You will need to generate a personal access token for the GITHUB API
+- This token is used for:
+  1. GHCR access for pulling and pushing repos to kubernetes cluster
+
 After this you should have access to all the necessary resources to work on the project. If you have any issues with access, please contact the supervisor or the responsible person for the specific resource.
 
 ## Modules
