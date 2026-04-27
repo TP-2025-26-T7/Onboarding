@@ -274,6 +274,7 @@ SUMO
 → SUMO API
 → SUMO Service
 → SUMO
+```
 
 ## Local Development with Docker Compose
 
