@@ -38,7 +38,8 @@ After this you should have access to all the necessary resources to work on the 
 
 Every repository has its own README file with more detailed information about the specific module, how to run it, and how it works. It is recommended to read through the README files of each module to get a better understanding of the project as a whole.
 
-![alt text](img/image-4.png)
+![alt text](img/image-5.png)
+
 Frontend interface
 
 ## Information repos
