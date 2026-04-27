@@ -1,6 +1,8 @@
 # Onboarding
 Information about the project and how it works.
 
+**NOTE:** Main focus of TP2025/26 was to make a starting point for the project, set the ground work and prepare the simulation side of the project. Real cars are not implemented. The missing pice mainly is the car integration module, which is intended to be a bridge for communicating with real-world cars. The communication also needs updating to support real-world cars, but the current communication is designed in a way that it can be easily extended to support both real and virtual cars. (you will need to implement a change for central unit to take routing for real cars and adjust frontend accordingly)
+
 # Showcase of the project
 1. Simulation start
 ![alt text](demo-video/simulation-start.gif)
@@ -8,33 +10,34 @@ Information about the project and how it works.
 2. Simulation end
 ![alt text](demo-video/simulation-end.gif)
 
-Whole simulation demo is in this repository files as **demo-video/SIMULATION_DEMO.mp4**
+Whole simulation demo is in this repository file as **demo-video/SIMULATION_DEMO.mp4**
 
 # All accesses and who you need to talk to
 **JUMP & KUBERNETES CLUSTER**
-- You will need to get "JUMP SERVER" access from **Ing. Matej Janeba Phd.** or any other person resposible for it
+- You will need to get jump server and Kubernetes access from **Ing. Matej Janeba Phd.** or any other person resposible for it
 
 **OMNET SERVER**
-- For passwords for the server and RDP connection contact the supervisor
+- For passwords for the server and RDP connection contact the supervisor or responsible maintainer
 
 **GITHUB**
-- For access to the repositories, you need to ask the supervisor for an invite to the organization and repositories
+- For access to the repositories, you need to ask for an invite to the organization and repositories
 
 **GITHUB API TOKEN**
 - You will need to generate a personal access token for the GITHUB API
 - This token is used for:
-  1. GHCR access for pulling and pushing repos to kubernetes cluster
+    1. GHCR access for pulling and pushing images in the cluster
 
 After this you should have access to all the necessary resources to work on the project. If you have any issues with access, please contact the supervisor or the responsible person for the specific resource.
 
 ## Modules
 
-- **Sumo + Sumo-service + Sumo api** --> Sumo is a program for simulating traffic, and sumo api is an api overhead for the program and sumo service is a middle man for communication between these two dockers
-- **Frontend**
-- **Alg-runner** --> Algrunner is a program that is the brain of the cars, it sends instructions to offline and real cars
-- **car integration** --> Car integration is a bridge for communicating with real-world cars
-- **OMNET** --> serves as a network simulator that receives and sends back JSON files via a UDP connection to simulate network processing
-- **Central unit** --> a hub for all connections, traffic routing and logging
+- **SUMO + SUMO service + SUMO API** --> SUMO simulates traffic, the SUMO service container runs the simulator, and SUMO API exposes HTTP endpoints and TraCI control.
+- **Frontend** --> Svelte UI for uploading configs and viewing simulation state
+- **Alg-runner** --> computes driving instructions from simulation state
+- **car integration** --> bridge for communicating with real-world cars
+- **OMNET** --> network simulator used when the OMNeT path is enabled through the central unit
+- **OMNET API** --> manages OMNeT simulation lifecycle on the host
+- **Central unit** --> orchestrates requests between the simulation, algorithm, and network services
 
 Every repository has its own README file with more detailed information about the specific module, how to run it, and how it works. It is recommended to read through the README files of each module to get a better understanding of the project as a whole.
 
@@ -51,6 +54,9 @@ Frontend interface
 ## Architecture
 
 ![alt text](img/image.png)
+- Adjustments:
+    - OMNeT API (placed before OMMNET - Serves as API controller for OMNET simulations)
+    - SUMO API+SUMO was split into for better developmnet and SUMO Service was added to interact with SUMO binary and run the simulation 
 
 ## Kubernetes Architecture
 This represents a concept for how Kubernetes should be set up. 
@@ -63,13 +69,13 @@ Workflow is split into two parts:
 - Real cars (rc cars)
 - Virtual cars (cars simulated via sumo)
 
-### Real cars
-This module/workflow represents communication and instructions for real-world RC cars. Where real cars communicate through *car-integration->LCU* to *Alg runner*. Alg runner sends directions and instructions. Real world cars send their telemetry data and receive instructions. 
+### Real cars (not implemented yet)
+This module/workflow represents communication and instructions for real-world RC cars. Real cars communicate through *car-integration->LCU* to *Alg runner*. Alg runner sends directions and instructions, and real-world cars send telemetry data and receive instructions.
 
 ![alt text](img/image-2.png)
 
 ### Virtual cars
-This module/workflow represents communication and instructions for virtual cars. This is intended for "offline testing" purposes. This module simulates comunication trough car-integration to simulate traffic going outside to "real-cars" simulated by OMNET network simulator. Cars are simulated via SUMO, and instructions are sent via ALG runner.
+This module/workflow represents communication and instructions for virtual cars. This is intended for "offline testing" purposes. Cars are simulated via SUMO, instructions are sent via ALG runner, and OMNET is used for network simulation.
 
 ***NOTE*** - communication is going through OMNET and not directly through **SUMO->Alg** runner to simulate real communication.
 
@@ -87,7 +93,7 @@ The following steps describe the typical lifecycle of a simulation within this p
 
 ### 2. Configuration & Start
 - A user uploads a SUMO configuration (network XML, routes XML) via the **Frontend**.
-- The **Central Unit** signals **SUMO-API** to parse the configuration and start the SUMO binary in the **SUMO Service**.
+- The **Central Unit** signals **SUMO-API** to parse the configuration and start the SUMO binary in the **SUMO** container.
 - The static road network data is sent to **Alg-Runner** so it understands the map topology (junctions, roads).
 
 ### 3. The Simulation Loop
@@ -114,12 +120,15 @@ The system operates in discrete time steps (ticks). For every step:
 
 ## Local Development with Docker Compose
 
+**NOTE**: The current version does not support local development since it requiers OMNET. Since autodeploy is enable. Testing is done on development branch of kubernetes cluster.
+
 To test the system locally, you can use the provided `docker-compose.yaml`.
 
 ### 1. Download Required Components
 Clone/Download the following repositories into a single root directory:
 - `alg-runner`
 - `central-unit`
+- `frontend`
 - `sumo-service` (Note: This must be renamed or cloned into a folder named `sumo` to match the docker-compose configuration)
 - `sumo-api`
 - `frontend`
@@ -129,25 +138,39 @@ Clone/Download the following repositories into a single root directory:
 Copy the `docker-compose.yaml` file from the `Onboarding` directory to the root directory (where all the component folders are located).
 
 The directory structure should look like this:
-```
+
+```text
 /root
-  ├── alg-runner/
-  ├── central-unit/
-  ├── frontend/
-  ├── Onboarding/
-  ├── sumo/              <-- (This is the sumo-service repo content)
-  ├── sumo-api/
-  └── docker-compose.yaml  <-- (Copied from Onboarding/)
+|-- alg-runner/
+|-- central-unit/
+|-- frontend/
+|-- Onboarding/
+|-- sumo/
+|-- sumo-api/
+`-- docker-compose.yaml
 ```
 
 ### 3. Run the System
 From the root directory, run:
 
 ```bash
-docker-compose up
+docker compose up --build
 ```
-This will build and start all services locally. Wait for the services to become healthy before interacting with the system. Local testing is without OMNeT++ network simulation, so telemetry will be sent directly from SUMO to Alg-Runner without network degradation.
+This will build and start all services locally. Wait for the services to become healthy before interacting with the system. The current compose file points OMNeT-related traffic to an external host, so that path only works when the host is reachable.
+
+The exposed ports in the current compose file are:
+- Frontend: `5173`
+- Central unit: `8001`
+- SUMO API: `8002`
+- SUMO: `8003` and `1337`
+- Alg-runner: `8000`
 
 
+---
+
+# Diagrams
+
+To work with and update the diagrams, you can use the following tools:
+- **Draw.io**: The diagrams are created using Draw.io. You can open the `.drawio` files in the respective repositories to edit them Onboarding/diagrams folder.
 
 
