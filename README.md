@@ -3,10 +3,10 @@ Information about the project and how it works.
 
 # Showcase of the project
 1. Simulation start
-![alt text](demo-video/simulation-start.gif)
+![alt text](Onboarding/demo-video/simulation-start.gif)
 
 2. Simulation end
-![alt text](demo-video/simulation-end.gif)
+![alt text](Onboarding/demo-video/simulation-end.gif)
 
 Whole simulation demo is in this repository files as **demo-video/SIMULATION_DEMO.mp4**
 
