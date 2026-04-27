@@ -83,40 +83,197 @@ This module/workflow represents communication and instructions for virtual cars.
 
 ## Detailed System Workflow
 
-The following steps describe the typical lifecycle of a simulation within this project:
+The following steps describe the current lifecycle of a virtual-car simulation in the project. The system is composed of several cooperating services: **Frontend**, **Central Unit**, **Algorithm Runner**, **OMNeT API**, **OMNeT++**, **SUMO API**, **SUMO Service**, and **SUMO**.
 
-### 1. Initialization
-- The system is deployed via Docker Compose or Kubernetes.
-- **Central Unit** starts and acts as the orchestrator.
-- **SUMO Service** initializes and waits for simulation commands.
-- **Alg-Runner** prepares to execute driving algorithms (e.g., FIFO, PrioQ).
+The main idea is that **SUMO** produces the vehicle simulation, **OMNeT++** simulates the network behavior between messages, **Algorithm Runner** computes control decisions, and the **Central Unit** coordinates the whole data flow and stores the information required for later playback.
 
-### 2. Configuration & Start
-- A user uploads a SUMO configuration (network XML, routes XML) via the **Frontend**.
-- The **Central Unit** signals **SUMO-API** to parse the configuration and start the SUMO binary in the **SUMO** container.
-- The static road network data is sent to **Alg-Runner** so it understands the map topology (junctions, roads).
+---
 
-### 3. The Simulation Loop
-The system operates in discrete time steps (ticks). For every step:
+### 1. Deployment and Service Initialization
 
-1.  **Advance Simulation**: The **Central Unit** requests **SUMO-API** to advance the simulation by one step.
-2.  **Telemetry Gathering**:
-    - **SUMO-API** fetches telemetry data (position, speed, sensors) for **each individual car** from the simulation.
-    - These per-car data packets are returned to the **Central Unit**.
-3.  **Network Simulation (OMNeT++)**:
-    - If enabled, the **Central Unit** forwards the telemetry data for each car to **OMNeT++**.
-    - OMNeT++ simulates network conditions (5G/V2X interactions, latency, packet loss) for each transmission.
-    - The processed data is sent back to the **Central Unit**, where it is **collected and aggregated** into a single coherent state update (simulating the central server receiving data from many individual vehicles).
-4.  **Decision Making**:
-    - The (potentially network-degraded) telemetry is sent to **Alg-Runner**.
-    - **Alg-Runner** processes the state using the selected algorithm (e.g., stopping at an intersection, changing lanes).
-    - **Alg-Runner** computes instructions for each car (e.g., "set speed to 0", "turn left").
-5.  **Execution**:
-    - Instructions are sent back to the **Central Unit**.
-    - **Central Unit** forwards these commands to **SUMO-API**.
-    - **SUMO-API** applies the commands to the specific vehicles in the SUMO simulation via TraCI.
-6.  **Visualization**:
-    - The **Frontend** polls the **Central Unit** or **SUMO-API** to fetch the current state and renders the cars moving on the map.
+The system is deployed via Docker Compose or Kubernetes. After deployment, the individual services are running and waiting for commands.
+
+- **Frontend** provides the user interface for configuring, starting, monitoring, and replaying simulations.
+- **Central Unit** acts as the main coordinator between the simulation, networking layer, algorithm execution, and logging.
+- **Algorithm Runner** waits for setup information and later computes control instructions for vehicles.
+- **OMNeT API** manages the lifecycle of the OMNeT++ simulation, such as start, stop, restart, status checks, and log access.
+- **OMNeT++** represents the network simulation layer.
+- **SUMO API** communicates with the rest of the system and interacts with the running SUMO simulation.
+- **SUMO Service** is responsible for calling and managing the SUMO binary.
+- **SUMO** performs the traffic simulation itself.
+
+At this stage, the services exist, but the simulation has not yet started.
+
+---
+
+### 2. Configuration and Algorithm Setup
+
+The simulation setup begins from the **Frontend**.
+
+The setup flow is:
+
+1. The user configures the simulation in the **Frontend**.
+2. The **Frontend** sends a setup request to the **Central Unit**.
+3. The **Central Unit** forwards the setup information to the **Algorithm Runner**.
+4. The **Algorithm Runner** prepares the selected algorithm and stores the information required for decision-making.
+
+This setup information may include the selected algorithm, simulation parameters, vehicle-related configuration, and map or scenario information needed by the algorithm.
+
+The purpose of this phase is to prepare the **Algorithm Runner** before live vehicle messages start arriving from the simulation.
+
+---
+
+### 3. Starting the OMNeT++ Simulation
+
+After the setup phase, the user starts the OMNeT++ network simulation.
+
+The OMNeT++ start flow is:
+
+1. The user triggers the OMNeT++ start action from the **Frontend**.
+2. The request is sent to the **OMNeT API**.
+3. The **OMNeT API** starts the OMNeT++ simulation.
+4. The **OMNeT API** provides status and logs for the OMNeT++ simulation.
+
+The **OMNeT API** is therefore mainly a lifecycle and management interface around OMNeT++. It handles operations such as:
+
+- start,
+- stop,
+- restart,
+- status,
+- logs.
+
+The actual network simulation behavior is handled by **OMNeT++**.
+
+---
+
+### 4. Starting the SUMO Simulation
+
+After OMNeT++ is started, the user starts the SUMO traffic simulation from the **Frontend**.
+
+The SUMO start flow is:
+
+1. The user starts the SUMO simulation in the **Frontend**.
+2. The **Frontend** sends the request to the **Central Unit**.
+3. The **Central Unit** forwards the request to the **SUMO API**.
+4. The **SUMO API** calls the **SUMO Service**.
+5. The **SUMO Service** starts the SUMO binary.
+6. **SUMO** begins the traffic simulation.
+7. The **SUMO API** then interacts with the running SUMO simulation and sends simulation data further into the system.
+
+This split is important:
+
+- **SUMO Service** handles the SUMO process/binary.
+- **SUMO API** interacts with the running simulation and exposes the simulation state to the rest of the system.
+
+---
+
+### 5. Main Simulation Loop
+
+Once SUMO and OMNeT++ are running, the system enters the main simulation loop. The loop continues until the simulation is finished.
+
+The simulation works in repeated steps. In each step, vehicle data is sent through the system as individual car messages.
+
+---
+
+#### 5.1 SUMO Produces Vehicle Messages
+
+During each simulation step, **SUMO** produces the current state of the simulated vehicles.
+
+The data flow is:
+
+1. **SUMO** runs the current simulation step.
+2. **SUMO Service** manages the running SUMO process.
+3. **SUMO API** receives or extracts the simulation state.
+4. **SUMO API** sends vehicle messages to the **Central Unit**.
+
+Each car is handled as a separate message. This means that instead of forwarding one large global simulation object, the system processes vehicle data individually.
+
+A vehicle message may represent data such as:
+
+- vehicle ID,
+- position,
+- speed,
+- lane,
+- route,
+- current state in the simulation.
+
+---
+
+#### 5.2 Vehicle Messages Pass Through OMNeT++
+
+After the **Central Unit** receives vehicle messages from the SUMO side, the messages are sent through the network simulation.
+
+The flow is:
+
+1. **Central Unit** receives vehicle messages from **SUMO API**.
+2. **Central Unit** sends the messages to **OMNeT++**.
+3. **OMNeT++** applies the configured network simulation behavior.
+4. **OMNeT++** sends the resulting messages back to the **Central Unit**.
+
+This step represents the communication path from the simulated vehicles toward the central control system.
+
+Depending on the OMNeT++ configuration, the message may be affected by simulated network behavior such as delay, jitter, or loss. The exact behavior depends on the used OMNeT++ model and configuration.
+
+---
+
+#### 5.3 Central Unit Sends Processed State to Algorithm Runner
+
+After the vehicle messages return from OMNeT++, the **Central Unit** forwards the processed vehicle state to the **Algorithm Runner**.
+
+The flow is:
+
+1. **Central Unit** receives the messages returned from **OMNeT++**.
+2. **Central Unit** forwards the relevant state to the **Algorithm Runner**.
+3. **Algorithm Runner** processes the current simulation state.
+4. **Algorithm Runner** computes control instructions.
+
+The **Algorithm Runner** is responsible for deciding what should happen next in the simulation. Depending on the selected algorithm, it may produce instructions such as stopping a vehicle, changing speed, changing priority, or allowing a vehicle to continue.
+
+---
+
+#### 5.4 Algorithm Instructions Pass Through OMNeT++
+
+The instructions produced by the **Algorithm Runner** are sent back through the system.
+
+The flow is:
+
+1. **Algorithm Runner** sends control instructions to the **Central Unit**.
+2. **Central Unit** sends the instructions through **OMNeT++**.
+3. **OMNeT++** applies the configured network simulation behavior to the instruction messages.
+4. **OMNeT++** sends the resulting instruction messages back to the **Central Unit**.
+
+This represents the communication path from the central decision-making system back toward the simulated vehicles.
+
+---
+
+#### 5.5 Instructions Are Applied Back to SUMO
+
+After the instruction messages return from OMNeT++, the **Central Unit** forwards them back to the SUMO side.
+
+The flow is:
+
+1. **Central Unit** receives the instruction messages from **OMNeT++**.
+2. **Central Unit** forwards the instructions to **SUMO API**.
+3. **SUMO API** sends the relevant commands to **SUMO Service** or applies them to the running SUMO simulation.
+4. **SUMO** applies the instructions to the vehicles.
+5. The next simulation step begins.
+
+The main loop can therefore be summarized as:
+
+```text
+SUMO
+→ SUMO Service
+→ SUMO API
+→ Central Unit
+→ OMNeT++
+→ Central Unit
+→ Algorithm Runner
+→ Central Unit
+→ OMNeT++
+→ Central Unit
+→ SUMO API
+→ SUMO Service
+→ SUMO
 
 ## Local Development with Docker Compose
 
