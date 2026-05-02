@@ -29,6 +29,35 @@ Whole simulation demo is in this repository file as **demo-video/SIMULATION_DEMO
 
 After this you should have access to all the necessary resources to work on the project. If you have any issues with access, please contact the supervisor or the responsible person for the specific resource.
 
+## Deployment Environments
+
+The project uses two Kubernetes environments:
+
+### Development Environment
+- **Namespace:** `virtual-intersection-dev`
+- **URL:** `https://virtual-intersection-dev.ail-lab.fiit.stuba.sk`
+- **Auto-deployment:** Enabled
+  - Pushing to the `mqin` branch automatically triggers CI/CD pipeline
+  - Images are built, pushed to GHCR, and deployed to the cluster
+  - No manual intervention needed for dev deployments
+- **Purpose:** Testing, development, and experimentation
+
+### Production Environment
+- **Namespace:** `virtual-intersection-prod`
+- **URL:** `https://virtual-intersection.ail-lab.fiit.stuba.sk` (or similar)
+- **Deployment:** Manual only
+  - Requires explicit deployment commands
+  - Used for stable, tested releases
+  - Always test thoroughly in dev before deploying to prod
+- **Deployment process:**
+  1. Test changes in dev environment
+  2. Merge approved changes to main/production branch
+  3. Connect to cluster via jump server
+  4. Apply manifests to production namespace
+  5. Verify deployment status
+
+For detailed deployment instructions, see the [Kubernetes README](../Kubernetes/README.md).
+
 ## Modules
 
 - **SUMO + SUMO service + SUMO API** --> SUMO simulates traffic, the SUMO service container runs the simulator, and SUMO API exposes HTTP endpoints and TraCI control.
